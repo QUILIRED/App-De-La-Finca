@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Panel de Administración</h1>
+        <button onclick="window.location.href='index.html'">Volver al Inicio</button>
+    </header>
+
+    <section id="admin-panel">
+        <h2>Datos de la Base de Datos</h2>
+        <div id="data-display"></div>
+    </section>
+
+    <script>
+        function mostrarDatos() {
+            const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            const productos = JSON.parse(localStorage.getItem('productos')) || [];
+            const sesiones = JSON.parse(localStorage.getItem('sesiones')) || [];
+            const carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+            const calificaciones = JSON.parse(localStorage.getItem('calificaciones')) || [];
+
+            const dataDiv = document.getElementById('data-display');
+            dataDiv.innerHTML = `
+                <h3>Usuarios</h3>
+                <pre>${JSON.stringify(usuarios, null, 2)}</pre>
+                <h3>Productos</h3>
+                <pre>${JSON.stringify(productos, null, 2)}</pre>
+                <h3>Sesiones</h3>
+                <pre>${JSON.stringify(sesiones, null, 2)}</pre>
+                <h3>Carrito</h3>
+                <pre>${JSON.stringify(carrito, null, 2)}</pre>
+                <h3>Calificaciones</h3>
+                <pre>${JSON.stringify(calificaciones, null, 2)}</pre>
+            `;
+        }
+
+        // Pedir contraseña para acceder
+        const password = prompt('Ingresa la contraseña de administrador:');
+        if (password === 'admin123') { // Contraseña simple
+            mostrarDatos();
+        } else {
+            alert('Contraseña incorrecta.');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

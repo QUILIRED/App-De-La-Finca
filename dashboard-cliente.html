@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Cliente - Mercado Agrícola</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Mercado Agrícola - Área de Cliente</h1>
+        <p>Productos frescos y naturales</p>
+        <div id="user-info">
+            <span id="user-name"></span>
+            <button id="edit-profile-btn">Editar Perfil</button>
+            <button id="logout-btn">Cerrar Sesión</button>
+            <button id="cambiar-modo-btn" style="display: none;">Cambiar a Modo Vendedor</button>
+        </div>
+    </header>
+
+    <div id="carrito-icon" style="position: fixed; left: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 24px; background-color: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 5px; z-index: 1001;">🛒 <span id="carrito-count">0</span></div>
+
+    <div id="clock"></div>
+    <div id="ratings-display"></div>
+
+    <section id="productos">
+        <h2>Productos Más Vendidos</h2>
+        <div id="productos-container">
+            <!-- Productos se cargarán dinámicamente -->
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Mercado Agrícola Campesino. Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- Modal de Carrito -->
+    <div id="carrito-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Carrito de Compras</h2>
+            <div id="carrito-items"></div>
+            <button id="checkout-btn">Proceder al Pago</button>
+            <div id="checkout" style="display: none;">
+                <h3>Checkout - Pago con Nequi</h3>
+                <div id="checkout-total"></div>
+                <form id="checkout-form">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" required>
+                    <label for="telefono">Teléfono:</label>
+                    <input type="tel" id="telefono" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                    <button type="submit">Pagar con Nequi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar perfil -->
+    <div id="edit-profile-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-edit-profile">&times;</span>
+            <h2>Editar Perfil</h2>
+            <form id="edit-profile-form">
+                <label for="edit-name">Nombre:</label>
+                <input type="text" id="edit-name" required>
+                <label for="edit-email">Correo Electrónico:</label>
+                <input type="email" id="edit-email" required>
+                <label for="edit-phone">Número de Celular (+57):</label>
+                <input type="tel" id="edit-phone" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                <button type="submit">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="rating-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-rating">&times;</span>
+            <h2>¿Cómo calificarías nuestra página!</h2>
+            <div class="stars">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+            </div>
+            <button id="submit-rating">Enviar Calificación</button>
+        </div>
+    </div>
+
+    <script src="dashboard-cliente.js"></script>
+</body>
+</html>

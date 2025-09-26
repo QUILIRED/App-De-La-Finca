@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado Agrícola - Ventas Abiertas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Mercado Agrícola Campesino</h1>
+        <p>Productos frescos y naturales directamente de los campesinos</p>
+        <button id="login-btn">Iniciar Sesión</button>
+        <button id="register-btn">Registrarse</button>
+        <button id="vendedor-btn" style="display:none;">Agregar productos de tu finca a la canasta de venta</button>
+    </header>
+    <section id="banner">
+        <h2>Productos Destacados del Campo</h2>
+        <div class="banner-images">
+            <img src="https://images.unsplash.com/photo-1571771019784-3ff35f4f4277?w=400" alt="Tomates frescos">
+            <img src="https://images.unsplash.com/photo-1519996529931-28324d5a630e?w=400" alt="Zanahorias orgánicas">
+            <img src="https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=400" alt="Maíz dulce">
+            <img src="https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=400" alt="Lechuga fresca">
+        </div>
+    </section>
+    <div id="carrito-icon" style="position: fixed; left: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 24px; background-color: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 5px; z-index: 1001;">🛒 <span id="carrito-count">0</span></div>
+    
+    <div id="clock"></div>
+    <div id="ratings-display"></div>
+    <section id="productos">
+        <h2>Productos Más Vendidos</h2>
+        <div id="productos-container">
+            <!-- Productos se cargarán dinámicamente -->
+        </div>
+    </section>
+
+    <!-- Formulario para agregar productos (solo para vendedores) -->
+    <div id="agregar-producto-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-agregar">&times;</span>
+            <h2>Agregar Nuevo Producto</h2>
+            <form id="agregar-producto-form">
+                <label for="nombre">Nombre del Producto:</label>
+                <input type="text" id="nombre" required>
+                <label for="descripcion">Descripción:</label>
+                <textarea id="descripcion" required></textarea>
+                <label for="precio">Precio:</label>
+                <input type="number" id="precio" min="0" step="0.01" required>
+                <label for="stock">Stock:</label>
+                <input type="number" id="stock" min="0" required>
+                <label for="imagen">Seleccionar Imagen:</label>
+                <input type="file" id="imagen" accept="image/*" required>
+                <button type="submit">Agregar Producto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Login -->
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-login">&times;</span>
+            <h2>Iniciar Sesión</h2>
+            <form id="login-form">
+                <label for="login-email">Correo Electrónico:</label>
+                <input type="email" id="login-email" required>
+                <label for="login-password">Contraseña:</label>
+                <input type="password" id="login-password" required>
+                <label><input type="checkbox" id="show-password-login"> Mostrar contraseña</label>
+                <label><input type="checkbox" id="remember-me"> Recordar mis credenciales</label>
+                <button type="submit">Iniciar Sesión</button>
+                <p><a href="#" id="forgot-password-link">¿Olvidaste tu contraseña?</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div id="register-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-register">&times;</span>
+            <h2>Registrarse</h2>
+            <form id="register-form">
+                <label for="register-name">Nombre:</label>
+                <input type="text" id="register-name" required>
+                <label for="register-email">Correo Electrónico:</label>
+                <input type="email" id="register-email" required>
+                <label for="register-phone">Número de Celular (+57):</label>
+                <input type="tel" id="register-phone" required oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="+57">
+                <label for="register-password">Contraseña:</label>
+                <input type="password" id="register-password" required>
+                <label><input type="checkbox" id="show-password-register"> Mostrar contraseña</label>
+                <label for="register-type">Tipo de Usuario (puedes seleccionar ambos):</label>
+                <div style="display: flex; gap: 20px;">
+                    <label><input type="checkbox" name="register-type" value="comprador"> Comprador</label>
+                    <label><input type="checkbox" name="register-type" value="vendedor"> Vendedor</label>
+                </div>
+                <button type="submit">Registrarse</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Recuperación de Contraseña -->
+    <div id="forgot-password-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-forgot">&times;</span>
+            <h2>Recuperar Contraseña</h2>
+            <form id="forgot-password-form">
+                <label for="forgot-email">Correo Electrónico:</label>
+                <input type="email" id="forgot-email" required>
+                <button type="submit">Enviar Enlace de Recuperación</button>
+            </form>
+        </div>
+    </div>
+
+    
+
+    <footer>
+        <p>&copy; 2025 Mercado Agrícola Campesino. Todos los derechos reservados.</p>
+    </footer>
+
+    <div id="carrito-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Carrito de Compras</h2>
+            <div id="carrito-items"></div>
+            <button id="chat-btn">Iniciar Chat para Acordar Compra</button>
+            <button id="pago-btn">Proceder Pago con Nequi</button>
+        </div>
+    </div>
+
+    <!-- Modal de Chat -->
+    <div id="chat-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-chat">&times;</span>
+            <h2>Chat con Vendedor</h2>
+            <div id="chat-messages" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;"></div>
+            <input type="text" id="chat-input" placeholder="Escribe tu mensaje..." style="width: 80%;">
+            <button id="send-message">Enviar</button>
+        </div>
+    </div>
+
+    <div id="rating-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="close-rating">&times;</span>
+            <h2>¿Cómo calificarías nuestra página?</h2>
+            <div class="stars">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+            </div>
+            <button id="submit-rating">Enviar Calificación</button>
+        </div>
+    </div>
+
+    <div id="modo-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Selecciona tu modo</h2>
+            <button id="modo-comprador">Modo Comprador</button>
+            <button id="modo-vendedor">Modo Vendedor</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
