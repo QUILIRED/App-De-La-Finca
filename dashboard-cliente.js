@@ -1,10 +1,13 @@
 // Variables globales
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
+let productos = []; // Limpiar productos del frontend
+localStorage.setItem('productos', JSON.stringify(productos));
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual')) || null;
 let calificaciones = JSON.parse(localStorage.getItem('calificaciones')) || [];
-let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-let sesiones = JSON.parse(localStorage.getItem('sesiones')) || [];
+let usuarios = []; // Limpiar usuarios del frontend
+let sesiones = []; // Limpiar sesiones del frontend
+localStorage.setItem('usuarios', JSON.stringify(usuarios));
+localStorage.setItem('sesiones', JSON.stringify(sesiones));
 
 // Verificar si el usuario está logueado y es comprador
 if (!usuarioActual || usuarioActual.modoSeleccionado !== 'comprador') {
@@ -62,7 +65,7 @@ function mostrarProductos() {
             <img src="${producto.imagen}" alt="${producto.nombre}" style="width:200px; height:150px;">
             <h3>${producto.nombre}</h3>
             <p>${producto.descripcion}</p>
-            <p>Precio: $${producto.precio}</p>
+            <p>Precio: ${parseFloat(producto.precio).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</p>
             <p>Stock: ${producto.stock}</p>
             <p>Vendedor: ${nombreVendedor}</p>
             <button onclick="agregarAlCarrito(${producto.id})">Agregar al Carrito</button>
@@ -84,17 +87,20 @@ function agregarAlCarrito(id) {
 
 function mostrarCarrito() {
     carritoItems.innerHTML = '';
-    let total = 0;
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
     carrito.forEach((item, index) => {
-        total += parseFloat(item.precio);
+        subtotal += parseFloat(item.precio);
+        costoEnvioTotal += (parseFloat(item.costo_envio) || 0);
         const div = document.createElement('div');
         div.innerHTML = `
-            <p>${item.nombre} - $${item.precio}</p>
+            <p>${item.nombre} - ${parseFloat(item.precio).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</p>
             <button onclick="removerDelCarrito(${index})">Remover</button>
         `;
         carritoItems.appendChild(div);
     });
-    checkoutTotal.textContent = `Total: $${total.toFixed(2)}`;
+    const total = subtotal + costoEnvioTotal;
+    checkoutTotal.textContent = `Subtotal: ${subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP\nEnvío: ${costoEnvioTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP\nTotal: ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP`;
 }
 
 function removerDelCarrito(index) {
@@ -165,29 +171,16 @@ editProfileForm.addEventListener('submit', function(e) {
 
 checkoutForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    // Calcular total
-    let total = 0;
+    // Calcular total incluyendo envío
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
     carrito.forEach(item => {
-        total += parseFloat(item.precio);
+        subtotal += parseFloat(item.precio);
+        costoEnvioTotal += (parseFloat(item.costo_envio) || 0);
     });
-    // Obtener vendedores
-    const vendedores = [...new Set(carrito.map(item => productos.find(p => p.id === item.id).vendedorId))];
-    if (vendedores.length === 1) {
-        const vendedor = usuarios.find(u => u.id === vendedores[0]);
-        if (vendedor && vendedor.telefono) {
-            const mensaje = `Hola, quiero pagar $${total.toFixed(2)} por mis productos.`;
-            window.open(`https://wa.me/${vendedor.telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
-        } else {
-            alert('No se pudo contactar al vendedor.');
-        }
-    } else {
-        alert('Carrito con múltiples vendedores, contacta directamente.');
-    }
-    // Opcional: limpiar carrito después de pago
-    // carrito = [];
-    // actualizarCarrito();
-    // ocultarModal(carritoModal);
-    // checkoutDiv.style.display = 'none';
+    const total = subtotal + costoEnvioTotal;
+    document.getElementById('pago-total').textContent = `Total a pagar: ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP`;
+    mostrarModal(document.getElementById('pago-modal'));
 });
 
 // Reloj
@@ -247,6 +240,26 @@ document.querySelectorAll('.close').forEach(close => {
 
 closeRating.addEventListener('click', () => ocultarModal(ratingModal));
 closeEditProfile.addEventListener('click', () => ocultarModal(editProfileModal));
+
+document.getElementById('close-pago').addEventListener('click', () => {
+    ocultarModal(document.getElementById('pago-modal'));
+});
+
+document.getElementById('confirmar-pago-btn').addEventListener('click', () => {
+    // Calcular total incluyendo envío
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
+    carrito.forEach(item => {
+        subtotal += parseFloat(item.precio);
+        costoEnvioTotal += (parseFloat(item.costo_envio) || 0);
+    });
+    const total = subtotal + costoEnvioTotal;
+    // Enviar mensaje al número central
+    const mensaje = `Hola, he realizado el pago de ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP por mis productos. Adjunto comprobante.`;
+    window.open(`https://wa.me/573126278124?text=${encodeURIComponent(mensaje)}`, '_blank');
+    ocultarModal(document.getElementById('pago-modal'));
+    alert('Pago confirmado. Envía el comprobante por WhatsApp.');
+});
 
 // Cerrar modales al hacer clic fuera
 window.addEventListener('click', function(event) {

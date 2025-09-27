@@ -86,9 +86,10 @@ header button:hover {
 #modo-indicator {
     position: absolute;
     right: 20px;
-    top: 40px;
+    top: 200px;
     color: green;
     font-size: 1.2em;
+    font-weight: bold;
 }
 
 #user-info span {
@@ -242,8 +243,8 @@ button[type="submit"]:hover {
     transform: translateY(-50%);
     cursor: pointer;
     font-size: 24px;
-    background-color: rgba(0,0,0,0.5);
-    color: white;
+    background-color: lightgreen;
+    color: black;
     padding: 10px;
     border-radius: 5px;
     z-index: 1001;
@@ -252,6 +253,63 @@ button[type="submit"]:hover {
 #carrito-items {
     max-height: 300px;
     overflow-y: auto;
+}
+
+#carrito-modal .modal-content {
+    background-color: #f0fff0;
+    border: 2px solid lightgreen;
+}
+
+/* Botones del carrito más interactivos */
+.carrito-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.carrito-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.carrito-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.remove-one-btn {
+    background-color: #ff9800;
+}
+
+.remove-one-btn:hover {
+    background-color: #e68900;
+}
+
+.remove-all-btn {
+    background-color: #f44336;
+}
+
+.remove-all-btn:hover {
+    background-color: #d32f2f;
+}
+
+.checkout-btn {
+    background-color: #2196F3;
+    font-weight: bold;
+    padding: 12px 20px;
+    font-size: 1em;
+}
+
+.checkout-btn:hover {
+    background-color: #1976D2;
 }
 
 /* Footer */

@@ -50,7 +50,7 @@ function mostrarProductos() {
             <img src="${producto.imagen}" alt="${producto.nombre}" style="width:200px; height:150px;">
             <h3>${producto.nombre}</h3>
             <p>${producto.descripcion}</p>
-            <p>Precio: $${producto.precio}</p>
+            <p>Precio: ${producto.precio} PESOS COP</p>
             <p>Stock: ${producto.stock}</p>
             <button onclick="editarProducto(${producto.id})">Editar</button>
             <button onclick="eliminarProducto(${producto.id})">Eliminar</button>
@@ -68,6 +68,7 @@ function editarProducto(id) {
         document.getElementById('descripcion').value = producto.descripcion;
         document.getElementById('precio').value = producto.precio;
         document.getElementById('stock').value = producto.stock;
+        document.getElementById('costo_envio').value = producto.costo_envio || 0;
         document.getElementById('imagen').value = producto.imagen;
         document.getElementById('imagen-seleccionada').textContent = 'Imagen actual';
         document.getElementById('submit-btn').textContent = 'Actualizar Producto';
@@ -158,6 +159,7 @@ agregarProductoForm.addEventListener('submit', function(e) {
     const descripcion = document.getElementById('descripcion').value;
     const precio = document.getElementById('precio').value;
     const stock = document.getElementById('stock').value;
+    const costo_envio = document.getElementById('costo_envio').value;
     const imagen = document.getElementById('imagen').value;
 
     if (!imagen) {
@@ -173,6 +175,7 @@ agregarProductoForm.addEventListener('submit', function(e) {
             producto.descripcion = descripcion;
             producto.precio = parseFloat(precio);
             producto.stock = parseInt(stock);
+            producto.costo_envio = parseFloat(costo_envio);
             producto.imagen = imagen;
             localStorage.setItem('productos', JSON.stringify(productos));
             alert('Producto actualizado exitosamente.');
@@ -185,6 +188,7 @@ agregarProductoForm.addEventListener('submit', function(e) {
             descripcion,
             precio: parseFloat(precio),
             stock: parseInt(stock),
+            costo_envio: parseFloat(costo_envio),
             imagen,
             vendedorId: usuarioActual.id
         };

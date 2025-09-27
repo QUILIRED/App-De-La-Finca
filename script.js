@@ -1,12 +1,17 @@
 // Variables globales
-let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
+let productos = [];
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual')) || null;
-let calificaciones = JSON.parse(localStorage.getItem('calificaciones')) || [];
-let sesiones = JSON.parse(localStorage.getItem('sesiones')) || [];
-let mensajes = JSON.parse(localStorage.getItem('mensajes')) || [];
+let calificaciones = [];
+let mensajes = [];
 let chatVendedorId = null;
+const API_BASE = 'http://localhost:3000/api';
+
+// Limpiar datos del frontend
+localStorage.removeItem('productos');
+localStorage.removeItem('usuarios');
+localStorage.removeItem('sesiones');
+localStorage.removeItem('productosReseteados');
 
 // Migrar carrito antiguo al nuevo formato
 if (carrito.length > 0 && carrito[0].hasOwnProperty('nombre')) {
@@ -24,12 +29,10 @@ if (carrito.length > 0 && carrito[0].hasOwnProperty('nombre')) {
 }
 
 
-// Eliminar productos subidos hasta ahora para permitir vendedores reales
-if (!localStorage.getItem('productosReseteados')) {
-    productos = [];
-    localStorage.setItem('productos', JSON.stringify(productos));
-    localStorage.setItem('productosReseteados', 'true');
-}
+// Limpiar productos del frontend
+productos = [];
+localStorage.setItem('productos', JSON.stringify(productos));
+localStorage.setItem('productosReseteados', 'true');
 
 // Elementos del DOM
 const loginBtn = document.getElementById('login-btn');
@@ -87,16 +90,26 @@ function actualizarCarrito() {
     localStorage.setItem('carrito', JSON.stringify(carrito));
 }
 
-function mostrarProductos() {
+
+async function mostrarProductos() {
     const container = document.getElementById('productos-container');
     container.innerHTML = '';
-    let productosAMostrar = productos.filter(p => p.vendedorId !== null); // Solo productos subidos por vendedores
+
+    try {
+        const response = await fetch(`${API_BASE}/products`);
+        productos = await response.json();
+    } catch (error) {
+        console.error('Error al cargar productos:', error);
+        productos = [];
+    }
+
+    let productosAMostrar = productos;
 
     // Cambiar el título según el modo
     const titulo = document.querySelector('#productos h2');
     if (usuarioActual && usuarioActual.modoSeleccionado === 'vendedor') {
         titulo.textContent = 'Mis Productos';
-        productosAMostrar = productos.filter(p => p.vendedorId === usuarioActual.id);
+        productosAMostrar = productos.filter(p => p.vendedor_id === usuarioActual.id);
         // Agregar botón para agregar producto
         const addBtn = document.createElement('button');
         addBtn.textContent = 'Agregar Nuevo Producto';
@@ -118,22 +131,20 @@ function mostrarProductos() {
             contentHtml = `
                 <img src="${producto.imagen}" alt="${producto.nombre}" style="width:200px; height:150px;">
                 <h3>${producto.nombre}</h3>
-                <p>Precio: $${producto.precio}</p>
+                <p>Precio: ${producto.precio} PESOS COP</p>
             `;
         } else if (usuarioActual.modoSeleccionado === 'comprador') {
             // Compradores: mostrar todo con selector de cantidad y botón agregar al carrito
-            const vendedor = usuarios.find(u => u.id === producto.vendedorId);
-            const nombreVendedor = vendedor ? vendedor.nombre : 'Desconocido';
             buttonHtml = `<button onclick="agregarAlCarrito(${producto.id})">Agregar al Carrito</button>`;
             contentHtml = `
                 <img src="${producto.imagen}" alt="${producto.nombre}" style="width:200px; height:150px;">
                 <h3>${producto.nombre}</h3>
                 <p>${producto.descripcion}</p>
-                <p>Precio: $${producto.precio}</p>
+                <p>Precio: ${producto.precio} PESOS COP</p>
                 <p>Stock: ${producto.stock}</p>
                 ${buttonHtml}
             `;
-        } else if (usuarioActual.modoSeleccionado === 'vendedor' && producto.vendedorId === usuarioActual.id) {
+        } else if (usuarioActual.modoSeleccionado === 'vendedor' && producto.vendedor_id === usuarioActual.id) {
             // Vendedores: mostrar todo con botones editar/eliminar
             buttonHtml = `<button onclick="editarProducto(${producto.id})">Editar</button>
                           <button onclick="eliminarProducto(${producto.id})">Eliminar</button>`;
@@ -141,7 +152,7 @@ function mostrarProductos() {
                 <img src="${producto.imagen}" alt="${producto.nombre}" style="width:200px; height:150px;">
                 <h3>${producto.nombre}</h3>
                 <p>${producto.descripcion}</p>
-                <p>Precio: $${producto.precio}</p>
+                <p>Precio: ${parseFloat(producto.precio).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</p>
                 <p>Stock: ${producto.stock}</p>
                 ${buttonHtml}
             `;
@@ -188,20 +199,24 @@ function actualizarInterfaz() {
         if (userInfo) userInfo.remove();
         const modoIndicator = document.getElementById('modo-indicator');
         if (modoIndicator) modoIndicator.remove();
+        document.getElementById('saldo-display').textContent = 'Saldo: 0 PESOS COP';
     }
     mostrarProductos();
 }
 
-function logout() {
+async function logout() {
     if (usuarioActual) {
-        // Registrar sesión de logout
-        sesiones.push({
-            id: Date.now(),
-            usuarioId: usuarioActual.id,
-            action: 'logout',
-            timestamp: new Date().toISOString()
-        });
-        localStorage.setItem('sesiones', JSON.stringify(sesiones));
+        try {
+            await fetch(`${API_BASE}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId: usuarioActual.id })
+            });
+        } catch (error) {
+            console.error('Error al registrar logout:', error);
+        }
     }
     usuarioActual = null;
     localStorage.removeItem('usuarioActual');
@@ -225,15 +240,27 @@ function editarProducto(id) {
     alert('Función de edición no implementada aún.');
 }
 
-function eliminarProducto(id) {
+async function eliminarProducto(id) {
     if (confirm('¿Estás seguro de eliminar este producto?')) {
-        productos = productos.filter(p => p.id !== id);
-        localStorage.setItem('productos', JSON.stringify(productos));
-        mostrarProductos();
+        try {
+            const response = await fetch(`${API_BASE}/products/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                mostrarProductos();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Error al eliminar producto');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        }
     }
 }
 
-function agregarAlCarrito(id) {
+async function agregarAlCarrito(id) {
     const producto = productos.find(p => p.id === id);
     if (producto && producto.stock > 0) {
         const existing = carrito.find(c => c.id === id);
@@ -245,43 +272,74 @@ function agregarAlCarrito(id) {
         producto.stock--;
         actualizarCarrito();
         mostrarProductos();
-        localStorage.setItem('productos', JSON.stringify(productos));
+
+        // Actualizar stock en BD
+        try {
+            await fetch(`${API_BASE}/products/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nombre: producto.nombre,
+                    descripcion: producto.descripcion,
+                    precio: producto.precio,
+                    stock: producto.stock,
+                    imagen: producto.imagen
+                })
+            });
+        } catch (error) {
+            console.error('Error al actualizar stock:', error);
+        }
     }
 }
 
 function mostrarCarrito() {
     carritoItems.innerHTML = '';
-    let total = 0;
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
     carrito.forEach((item, index) => {
         const producto = productos.find(p => p.id === item.id);
         if (producto) {
-            const subtotal = parseFloat(producto.precio) * item.cantidad;
-            total += subtotal;
+            const precioSubtotal = parseFloat(producto.precio) * item.cantidad;
+            const envioSubtotal = (parseFloat(producto.costo_envio) || 0) * item.cantidad;
+            subtotal += precioSubtotal;
+            costoEnvioTotal += envioSubtotal;
             const div = document.createElement('div');
             div.innerHTML = `
-                <p>${producto.nombre} - Cantidad: ${item.cantidad} - Precio unitario: $${producto.precio} - Subtotal: $${subtotal.toFixed(2)}</p>
-                <button onclick="removerDelCarrito(${index})">Remover uno</button>
-                <button onclick="removerTodosDelCarrito(${index})">Remover todos</button>
+                <p>${producto.nombre} - Cantidad: ${item.cantidad} - Precio unitario: ${parseFloat(producto.precio).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP - Subtotal: ${precioSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</p>
+                <button class="carrito-btn remove-one-btn" onclick="removerDelCarrito(${index})">Remover uno</button>
+                <button class="carrito-btn remove-all-btn" onclick="removerTodosDelCarrito(${index})">Remover todos</button>
             `;
             carritoItems.appendChild(div);
         }
     });
-    // Mostrar total
-    const totalDiv = document.createElement('div');
-    totalDiv.innerHTML = `<p><strong>Total: $${total.toFixed(2)}</strong></p>`;
-    carritoItems.appendChild(totalDiv);
+    const total = subtotal + costoEnvioTotal;
+    // Mostrar resumen
+    const resumenDiv = document.createElement('div');
+    resumenDiv.innerHTML = `
+        <p><strong>Subtotal productos: ${subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</strong></p>
+        <p><strong>Envío: ${costoEnvioTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</strong></p>
+        <p><strong>Total: ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP</strong></p>
+    `;
+    carritoItems.appendChild(resumenDiv);
 }
 
-function mostrarChat() {
+async function mostrarChat() {
     chatMessages.innerHTML = '';
-    const mensajesFiltrados = mensajes.filter(m => (m.deUsuarioId === usuarioActual.id && m.paraUsuarioId === chatVendedorId) || (m.deUsuarioId === chatVendedorId && m.paraUsuarioId === usuarioActual.id));
-    mensajesFiltrados.forEach(m => {
-        const isFromMe = m.deUsuarioId === usuarioActual.id;
-        const div = document.createElement('div');
-        div.className = isFromMe ? 'message user' : 'message other';
-        div.textContent = m.mensaje;
-        chatMessages.appendChild(div);
-    });
+    try {
+        const response = await fetch(`${API_BASE}/messages/${usuarioActual.id}/${chatVendedorId}`);
+        const mensajesFiltrados = await response.json();
+        mensajesFiltrados.forEach(m => {
+            const isFromMe = m.de_usuario_id === usuarioActual.id;
+            const div = document.createElement('div');
+            div.className = isFromMe ? 'message user' : 'message other';
+            div.textContent = m.mensaje;
+            chatMessages.appendChild(div);
+        });
+    } catch (error) {
+        console.error('Error al cargar mensajes:', error);
+    }
     mostrarModal(chatModal);
 }
 
@@ -329,28 +387,34 @@ registerForm.addEventListener('submit', async function(e) {
         return;
     }
 
-    // Verificar si el email ya existe
-    if (usuarios.find(u => u.email === email)) {
-        alert('El email ya está registrado.');
-        return;
+    try {
+        const response = await fetch(`${API_BASE}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nombre,
+                email,
+                telefono: phone,
+                password,
+                tipos: tiposSeleccionados
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Registro exitoso. Ahora puedes iniciar sesión.');
+            ocultarModal(registerModal);
+            registerForm.reset();
+        } else {
+            alert(data.error || 'Error en el registro');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión');
     }
-
-    const hashedPassword = await hashPassword(password);
-
-    const nuevoUsuario = {
-        id: Date.now(),
-        nombre,
-        email,
-        telefono: phone,
-        password: hashedPassword,
-        tipos: tiposSeleccionados
-    };
-
-    usuarios.push(nuevoUsuario);
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
-    alert('Registro exitoso. Ahora puedes iniciar sesión.');
-    ocultarModal(registerModal);
-    registerForm.reset();
 });
 
 loginForm.addEventListener('submit', async function(e) {
@@ -359,61 +423,52 @@ loginForm.addEventListener('submit', async function(e) {
     const password = document.getElementById('login-password').value;
     const rememberMe = document.getElementById('remember-me').checked;
 
-    // Consultar si el email está activo (registrado)
-    const usuario = usuarios.find(u => u.email === email);
-    if (!usuario) {
-        alert('El correo electrónico no está registrado.');
-        return;
-    }
-
-    const hashedPassword = await hashPassword(password);
-    if (usuario.password === hashedPassword) {
-        // Migrar usuarios antiguos con 'tipo' a 'tipos'
-        if (usuario.tipo && !usuario.tipos) {
-            usuario.tipos = [usuario.tipo];
-            delete usuario.tipo;
-            localStorage.setItem('usuarios', JSON.stringify(usuarios));
-        }
-
-        usuarioActual = usuario;
-        localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
-
-        // Registrar sesión de login
-        sesiones.push({
-            id: Date.now(),
-            usuarioId: usuario.id,
-            action: 'login',
-            timestamp: new Date().toISOString()
+    try {
+        const response = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
         });
-        localStorage.setItem('sesiones', JSON.stringify(sesiones));
 
-        // Acordar credenciales automáticamente si está marcado
-        if (rememberMe) {
-            localStorage.setItem('rememberedEmail', email);
-            localStorage.setItem('rememberedPassword', password);
-        } else {
-            localStorage.removeItem('rememberedEmail');
-            localStorage.removeItem('rememberedPassword');
-        }
+        const data = await response.json();
 
-        ocultarModal(loginModal);
-        loginForm.reset();
-
-        // Si tiene múltiples tipos, redirigir a página de selección de modo
-        if (usuario.tipos.length > 1) {
-            window.location.href = 'modo.html';
-        } else {
-            // Solo un tipo, redirigir directamente
-            usuarioActual.modoSeleccionado = usuario.tipos[0];
+        if (response.ok) {
+            usuarioActual = data.user;
             localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
-            if (usuario.tipos[0] === 'comprador') {
-                window.location.href = 'dashboard-cliente.html';
+
+            // Acordar credenciales automáticamente si está marcado
+            if (rememberMe) {
+                localStorage.setItem('rememberedEmail', email);
+                localStorage.setItem('rememberedPassword', password);
             } else {
-                window.location.href = 'dashboard-vendedor.html';
+                localStorage.removeItem('rememberedEmail');
+                localStorage.removeItem('rememberedPassword');
             }
+
+            ocultarModal(loginModal);
+            loginForm.reset();
+
+            // Si tiene múltiples tipos, redirigir a página de selección de modo
+            if (usuarioActual.tipos.length > 1) {
+                window.location.href = 'modo.html';
+            } else {
+                // Solo un tipo, redirigir directamente
+                usuarioActual.modoSeleccionado = usuarioActual.tipos[0];
+                localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+                if (usuarioActual.tipos[0] === 'comprador') {
+                    window.location.href = 'dashboard-cliente.html';
+                } else {
+                    window.location.href = 'dashboard-vendedor.html';
+                }
+            }
+        } else {
+            alert(data.error || 'Error en el login');
         }
-    } else {
-        alert('Credenciales incorrectas.');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión');
     }
 });
 
@@ -430,6 +485,7 @@ agregarProductoForm.addEventListener('submit', async function(e) {
     const descripcion = document.getElementById('descripcion').value;
     const precio = document.getElementById('precio').value;
     const stock = document.getElementById('stock').value;
+    const costo_envio = document.getElementById('costo_envio').value;
     const imagenInput = document.getElementById('imagen');
     const file = imagenInput.files[0];
 
@@ -446,22 +502,37 @@ agregarProductoForm.addEventListener('submit', async function(e) {
         reader.readAsDataURL(file);
     });
 
-    const nuevoProducto = {
-        id: Date.now(),
-        nombre,
-        descripcion,
-        precio: parseFloat(precio),
-        stock: parseInt(stock),
-        imagen,
-        vendedorId: usuarioActual.id
-    };
+    try {
+        const response = await fetch(`${API_BASE}/products`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nombre,
+                descripcion,
+                precio: parseFloat(precio),
+                stock: parseInt(stock),
+                costo_envio: parseFloat(costo_envio),
+                imagen,
+                vendedorId: usuarioActual.id
+            })
+        });
 
-    productos.push(nuevoProducto);
-    localStorage.setItem('productos', JSON.stringify(productos));
-    alert('Producto agregado exitosamente.');
-    ocultarModal(agregarProductoModal);
-    agregarProductoForm.reset();
-    mostrarProductos();
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Producto agregado exitosamente.');
+            ocultarModal(agregarProductoModal);
+            agregarProductoForm.reset();
+            mostrarProductos();
+        } else {
+            alert(data.error || 'Error al agregar producto');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión');
+    }
 });
 
 // Funciones del carrito
@@ -474,18 +545,34 @@ function actualizarReloj() {
 setInterval(actualizarReloj, 1000);
 
 // Calificaciones
-function mostrarCalificaciones() {
-    const promedio = calificaciones.length > 0 ? (calificaciones.reduce((a, b) => a + b, 0) / calificaciones.length).toFixed(1) : 0;
-    ratingsDisplay.textContent = `Calificación promedio: ${promedio} ★ (${calificaciones.length} votos)`;
+async function mostrarCalificaciones() {
+    try {
+        const response = await fetch(`${API_BASE}/ratings/average`);
+        const data = await response.json();
+        ratingsDisplay.textContent = `Calificación promedio: ${data.promedio.toFixed(1)} ★ (${data.total} votos)`;
+    } catch (error) {
+        console.error('Error al cargar calificaciones:', error);
+        ratingsDisplay.textContent = 'Calificación promedio: 0 ★ (0 votos)';
+    }
 }
 
-submitRating.addEventListener('click', function() {
+submitRating.addEventListener('click', async function() {
     const rating = document.querySelector('.star.active');
     if (rating) {
-        calificaciones.push(parseInt(rating.dataset.value));
-        localStorage.setItem('calificaciones', JSON.stringify(calificaciones));
-        mostrarCalificaciones();
-        ocultarModal(ratingModal);
+        try {
+            await fetch(`${API_BASE}/ratings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ rating: parseInt(rating.dataset.value) })
+            });
+            mostrarCalificaciones();
+            ocultarModal(ratingModal);
+        } catch (error) {
+            console.error('Error al enviar calificación:', error);
+            alert('Error al enviar calificación');
+        }
     }
 });
 
@@ -555,45 +642,45 @@ chatBtn.addEventListener('click', () => {
 });
 
 document.getElementById('pago-btn').addEventListener('click', () => {
-    // Calcular total
-    let total = 0;
+    // Calcular total incluyendo envío
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
     carrito.forEach(item => {
         const producto = productos.find(p => p.id === item.id);
         if (producto) {
-            total += parseFloat(producto.precio) * item.cantidad;
+            subtotal += parseFloat(producto.precio) * item.cantidad;
+            costoEnvioTotal += (parseFloat(producto.costo_envio) || 0) * item.cantidad;
         }
     });
+    const total = subtotal + costoEnvioTotal;
     if (total > 0) {
-        // Obtener vendedores
-        const vendedores = [...new Set(carrito.map(item => productos.find(p => p.id === item.id).vendedorId))];
-        if (vendedores.length === 1) {
-            const vendedor = usuarios.find(u => u.id === vendedores[0]);
-            if (vendedor && vendedor.telefono) {
-                const mensaje = `Hola, quiero pagar $${total.toFixed(2)} por mis productos.`;
-                window.open(`https://wa.me/${vendedor.telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
-            } else {
-                alert('No se pudo contactar al vendedor.');
-            }
-        } else {
-            alert('Carrito con múltiples vendedores, contacta directamente.');
-        }
+        document.getElementById('pago-total').textContent = `Total a pagar: ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP`;
+        mostrarModal(document.getElementById('pago-modal'));
     } else {
         alert('No hay productos en el carrito.');
     }
 });
-sendMessage.addEventListener('click', () => {
+sendMessage.addEventListener('click', async () => {
     const mensaje = chatInput.value.trim();
     if (mensaje) {
-        mensajes.push({
-            id: Date.now(),
-            deUsuarioId: usuarioActual.id,
-            paraUsuarioId: chatVendedorId,
-            mensaje,
-            timestamp: new Date().toISOString()
-        });
-        localStorage.setItem('mensajes', JSON.stringify(mensajes));
-        chatInput.value = '';
-        mostrarChat();
+        try {
+            await fetch(`${API_BASE}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    deUsuarioId: usuarioActual.id,
+                    paraUsuarioId: chatVendedorId,
+                    mensaje
+                })
+            });
+            chatInput.value = '';
+            mostrarChat();
+        } catch (error) {
+            console.error('Error al enviar mensaje:', error);
+            alert('Error al enviar mensaje');
+        }
     }
 });
 
@@ -622,6 +709,29 @@ document.querySelectorAll('.close').forEach(close => {
     close.addEventListener('click', () => {
         ocultarModal(carritoModal);
     });
+});
+
+document.getElementById('close-pago').addEventListener('click', () => {
+    ocultarModal(document.getElementById('pago-modal'));
+});
+
+document.getElementById('confirmar-pago-btn').addEventListener('click', () => {
+    // Calcular total incluyendo envío
+    let subtotal = 0;
+    let costoEnvioTotal = 0;
+    carrito.forEach(item => {
+        const producto = productos.find(p => p.id === item.id);
+        if (producto) {
+            subtotal += parseFloat(producto.precio) * item.cantidad;
+            costoEnvioTotal += (parseFloat(producto.costo_envio) || 0) * item.cantidad;
+        }
+    });
+    const total = subtotal + costoEnvioTotal;
+    // Enviar mensaje al número central
+    const mensaje = `Hola, he realizado el pago de ${total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PESOS COP por mis productos. Adjunto comprobante.`;
+    window.open(`https://wa.me/573126278124?text=${encodeURIComponent(mensaje)}`, '_blank');
+    ocultarModal(document.getElementById('pago-modal'));
+    alert('Pago confirmado. Envía el comprobante por WhatsApp.');
 });
 
 // Cerrar modales al hacer clic fuera
