@@ -13,13 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuración de la base de datos SQLite
-const db = new sqlite3.Database('./mercado_agricola.db', (err) => {
-  if (err) {
-    console.error('Error conectando a la base de datos:', err);
-    return;
-  }
-  console.log('Conectado a la base de datos SQLite');
-});
+const db = require('./db/connection');
 
 // Crear tablas si no existen
 db.serialize(() => {
@@ -80,5 +74,3 @@ app.use('/api/ratings', require('./routes/ratings'));
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
-
-module.exports = { db };
