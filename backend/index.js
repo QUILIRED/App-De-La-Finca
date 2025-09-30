@@ -42,6 +42,7 @@ db.serialize(() => {
     precio REAL NOT NULL,
     stock INTEGER NOT NULL,
     imagen TEXT,
+    costo_envio REAL DEFAULT 0,
     vendedor_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vendedor_id) REFERENCES users (id)
